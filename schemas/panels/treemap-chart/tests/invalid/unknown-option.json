@@ -1,0 +1,4 @@
+{
+  "kind": "TreemapChart",
+  "spec": { "calculation": "last", "legend": { "position": "bottom" } }
+}

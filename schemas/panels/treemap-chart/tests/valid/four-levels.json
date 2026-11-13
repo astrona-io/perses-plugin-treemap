@@ -1,0 +1,8 @@
+{
+  "kind": "TreemapChart",
+  "spec": {
+    "calculation": "mean",
+    "levels": ["cluster", "team", "namespace", "pod"],
+    "topN": 1
+  }
+}

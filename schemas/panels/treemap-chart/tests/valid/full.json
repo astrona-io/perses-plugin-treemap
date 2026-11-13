@@ -1,0 +1,21 @@
+{
+  "kind": "TreemapChart",
+  "spec": {
+    "calculation": "last",
+    "levels": ["team", "namespace", "workload"],
+    "format": {
+      "unit": "eur",
+      "decimalPlaces": 0
+    },
+    "colorBy": "thresholds",
+    "thresholds": {
+      "mode": "percent",
+      "steps": [
+        { "value": 5, "color": "#f2c96d", "name": "over 5% of total" },
+        { "value": 15, "color": "#e46a6a", "name": "over 15% of total" }
+      ]
+    },
+    "topN": 8,
+    "showBreadcrumb": true
+  }
+}
