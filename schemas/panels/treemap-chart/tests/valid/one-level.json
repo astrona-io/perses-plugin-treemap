@@ -1,0 +1,10 @@
+{
+  "kind": "TreemapChart",
+  "spec": {
+    "calculation": "sum",
+    "levels": ["namespace"],
+    "format": { "unit": "bytes" },
+    "colorBy": "topLevel",
+    "showBreadcrumb": false
+  }
+}

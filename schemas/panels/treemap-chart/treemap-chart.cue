@@ -4,24 +4,26 @@ import (
 	"github.com/perses/shared/cue/common"
 )
 
-#legendValue: common.#calculation
-
-#legend: {
-	position: "bottom" | "right"
-	mode?:    "list" | "table"
-	size?:    "small" | "medium"
-	values?: [...#legendValue]
-}
-
-#querySettings: [...{
-	queryIndex: int & >=0
-	colorMode:  "fixed" | "fixed-single"
-	colorValue: =~"^#(?:[0-9a-fA-F]{3}){1,2}$" // hexadecimal color code
-}]
+// A Prometheus label name.
+#labelName: string & =~"^[a-zA-Z_][a-zA-Z0-9_]*$"
 
 kind: "TreemapChart"
 spec: close({
-  legend?:        #legend
-  thresholds?:    common.#thresholds
-  querySettings?: #querySettings
+	// How each series is reduced to one value (last, sum, mean, ...).
+	calculation: common.#calculation
+	// Ordered label names, one level of the hierarchy each, outermost first (1 to 4). Same shape
+	// as the Sankey plugin's levels. A missing label groups the series under "(none)".
+	// Default ["namespace", "pod"].
+	levels?: [#labelName] | [#labelName, #labelName] | [#labelName, #labelName, #labelName] | [#labelName, #labelName, #labelName, #labelName]
+	format?: common.#format
+	// topLevel: one palette color per outermost box, shared by everything inside it.
+	// thresholds: each box by its value (percent mode: its share of the total). Default topLevel.
+	colorBy?: "topLevel" | "thresholds"
+	// Used when colorBy is thresholds.
+	thresholds?: common.#thresholds
+	// Keep the largest N boxes under each parent, at every level; the rest are summed into
+	// "Other" (only when that is at least two boxes). Unset: no limit.
+	topN?: int & >=1
+	// Show the path to the open box, with a way back up. Default true.
+	showBreadcrumb?: bool
 })

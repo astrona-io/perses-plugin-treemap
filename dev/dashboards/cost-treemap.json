@@ -1,0 +1,187 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "cost-treemap",
+    "project": "demo"
+  },
+  "spec": {
+    "display": {
+      "name": "Cost treemap"
+    },
+    "duration": "15m",
+    "refreshInterval": "0s",
+    "variables": [],
+    "panels": {
+      "cost": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Monthly cost by team, namespace and workload",
+            "description": "OpenCost-style allocation \u00d7 node prices, 730 hours a month. Click a box to open it; namespaces without a team label are under (none)."
+          },
+          "plugin": {
+            "kind": "TreemapChart",
+            "spec": {
+              "calculation": "last",
+              "levels": [
+                "team",
+                "namespace",
+                "workload"
+              ],
+              "format": {
+                "unit": "eur",
+                "decimalPlaces": 0
+              },
+              "colorBy": "topLevel",
+              "topN": 8,
+              "showBreadcrumb": true
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (team, namespace, workload) (label_replace(label_replace(((sum by (namespace, pod, node) (container_cpu_allocation) * on (node) group_left () avg by (node) (node_cpu_hourly_cost) + sum by (namespace, pod, node) (container_memory_allocation_bytes) / 1073741824 * on (node) group_left () avg by (node) (node_ram_hourly_cost)) * 730) * on (namespace, pod) group_left (label_app) kube_pod_labels * on (namespace) group_left (label_team) kube_namespace_labels, \"team\", \"$1\", \"label_team\", \"(.*)\"), \"workload\", \"$1\", \"label_app\", \"(.*)\"))"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "pods": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Monthly cost of every pod (2,000 leaves)",
+            "description": "Four levels, no topN: every pod is a box. Small boxes show their name and value on hover."
+          },
+          "plugin": {
+            "kind": "TreemapChart",
+            "spec": {
+              "calculation": "last",
+              "levels": [
+                "team",
+                "namespace",
+                "workload",
+                "pod"
+              ],
+              "format": {
+                "unit": "eur",
+                "decimalPlaces": 2
+              },
+              "colorBy": "topLevel",
+              "showBreadcrumb": true
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (team, namespace, workload, pod) (label_replace(label_replace(((sum by (namespace, pod, node) (container_cpu_allocation) * on (node) group_left () avg by (node) (node_cpu_hourly_cost) + sum by (namespace, pod, node) (container_memory_allocation_bytes) / 1073741824 * on (node) group_left () avg by (node) (node_ram_hourly_cost)) * 730) * on (namespace, pod) group_left (label_app) kube_pod_labels * on (namespace) group_left (label_team) kube_namespace_labels, \"team\", \"$1\", \"label_team\", \"(.*)\"), \"workload\", \"$1\", \"label_app\", \"(.*)\"))"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "memory": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Memory allocated by namespace and workload",
+            "description": "Coloured by share of the total: amber at 5%, red at 10%. The 5 largest per parent, the rest in Other. No breadcrumb: an Up button appears after drilling in."
+          },
+          "plugin": {
+            "kind": "TreemapChart",
+            "spec": {
+              "calculation": "last",
+              "levels": [
+                "namespace",
+                "workload"
+              ],
+              "format": {
+                "unit": "bytes",
+                "decimalPlaces": 1
+              },
+              "colorBy": "thresholds",
+              "thresholds": {
+                "mode": "percent",
+                "steps": [
+                  {
+                    "value": 5,
+                    "color": "#e0a526",
+                    "name": "5% of total or more"
+                  },
+                  {
+                    "value": 10,
+                    "color": "#d9534f",
+                    "name": "10% of total or more"
+                  }
+                ]
+              },
+              "topN": 10,
+              "showBreadcrumb": false
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum by (namespace, workload) (label_replace(sum by (namespace, pod) (container_memory_allocation_bytes) * on (namespace, pod) group_left (label_app) kube_pod_labels, \"workload\", \"$1\", \"label_app\", \"(.*)\"))"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 14,
+              "content": {
+                "$ref": "#/spec/panels/cost"
+              }
+            },
+            {
+              "x": 0,
+              "y": 14,
+              "width": 12,
+              "height": 14,
+              "content": {
+                "$ref": "#/spec/panels/pods"
+              }
+            },
+            {
+              "x": 12,
+              "y": 14,
+              "width": 12,
+              "height": 14,
+              "content": {
+                "$ref": "#/spec/panels/memory"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
