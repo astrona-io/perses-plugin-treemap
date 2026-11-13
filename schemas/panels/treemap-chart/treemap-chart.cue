@@ -22,7 +22,7 @@ spec: close({
 	// Used when colorBy is thresholds.
 	thresholds?: common.#thresholds
 	// Keep the largest N boxes under each parent, at every level; the rest are summed into
-	// "Other". Unset: no limit.
+	// "Other" (only when that is at least two boxes). Unset: no limit.
 	topN?: int & >=1
 	// Show the path to the open box, with a way back up. Default true.
 	showBreadcrumb?: bool

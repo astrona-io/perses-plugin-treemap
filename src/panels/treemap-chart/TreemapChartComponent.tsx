@@ -41,6 +41,7 @@ import {
   hashIndex,
   thresholdBand,
   thresholdBands,
+  mix,
   withAlpha,
   type ThresholdColours,
 } from "./colours";
@@ -69,6 +70,8 @@ function richSafe(s: string): string {
 function percent(part: number, whole: number): string {
   if (whole <= 0) return "0%";
   const p = (part / whole) * 100;
+  // A real share too small for one decimal still reads as more than nothing.
+  if (p > 0 && p < 0.05) return "<0.1%";
   return `${p >= 10 || p === 0 ? p.toFixed(0) : p.toFixed(1)}%`;
 }
 
@@ -158,6 +161,16 @@ export function TreemapChartComponent(
     [format],
   );
 
+  // The outermost boxes of the current view take palette colours in name order: stable across
+  // refreshes while the set of names stays the same, and no two share a colour until there are
+  // more boxes than colours. Everything inside a box shares its colour.
+  const topIndex = useMemo(() => {
+    const names = current.children
+      .map((c) => c.path[path.length] ?? c.name)
+      .sort((a, b) => a.localeCompare(b));
+    return new Map(names.map((n, i) => [n, i]));
+  }, [current, path.length]);
+
   const colourOf = useCallback(
     (n: TreeNode): string => {
       if (colorBy === "thresholds")
@@ -168,12 +181,21 @@ export function TreemapChartComponent(
           format,
           thresholdTheme,
         ).color;
-      const top = n.path[0] ?? n.name;
-      return (
-        palette[hashIndex(top, palette.length)] ?? muiTheme.palette.text.primary
-      );
+      const top = n.path[path.length] ?? n.name;
+      const i = topIndex.get(top) ?? hashIndex(top, palette.length);
+      return palette[i % palette.length] ?? muiTheme.palette.text.primary;
     },
-    [colorBy, tree, thresholds, format, thresholdTheme, palette, muiTheme],
+    [
+      colorBy,
+      tree,
+      path.length,
+      topIndex,
+      thresholds,
+      format,
+      thresholdTheme,
+      palette,
+      muiTheme,
+    ],
   );
 
   const width = contentDimensions?.width ?? 0;
@@ -195,6 +217,7 @@ export function TreemapChartComponent(
 
   const option = useMemo((): EChartsOption => {
     const text = muiTheme.palette.text;
+    const background = muiTheme.palette.background.paper;
     const area = width * chartHeight;
     const scale = current.value > 0 ? area / current.value : 0;
 
@@ -208,8 +231,11 @@ export function TreemapChartComponent(
         name: n.name,
         value: n.value,
         itemStyle: {
-          color: withAlpha(colour, hasChildren ? 0.22 : 0.32),
-          borderColor: isFocused ? text.primary : withAlpha(colour, 0.85),
+          // A parent's colour is its frame and title bar; a leaf's is its fill, with a stronger border.
+          color: mix(colour, background, hasChildren ? 0.4 : 0.28),
+          borderColor: isFocused
+            ? text.primary
+            : mix(colour, background, hasChildren ? 0.4 : 0.75),
           borderWidth: isFocused ? 3 : 1,
         },
         label: { show: big },
@@ -224,7 +250,7 @@ export function TreemapChartComponent(
       const parent = parentOf(tree, n);
       const lines = pathLines(n, levels).map(escapeHtml);
       const out = [
-        `<div style="font-weight:600">${lines.join(" &rsaquo; ")}</div>`,
+        `<span style="font-weight:600">${lines.join(" &rsaquo; ")}</span>`,
         `<b>${escapeHtml(fmt(n.value))}</b>`,
       ];
       const shares: string[] = [];
@@ -247,13 +273,13 @@ export function TreemapChartComponent(
       if (n.other) {
         const shown = n.other.slice(0, OTHER_TOOLTIP_MEMBERS);
         out.push(
-          `<div style="margin-top:4px">${shown
+          `<span style="opacity:0.85">${shown
             .map((m) => `${escapeHtml(m.name)}: ${escapeHtml(fmt(m.value))}`)
             .join("<br/>")}${
             n.other.length > shown.length
               ? `<br/>and ${n.other.length - shown.length} more`
               : ""
-          }</div>`,
+          }</span>`,
         );
       } else if (n.children.length > 0) {
         out.push(
@@ -288,7 +314,16 @@ export function TreemapChartComponent(
           visibleMin: 4,
           itemStyle: { gapWidth: 2, borderWidth: 1, borderRadius: 3 },
           levels: [
-            { itemStyle: { gapWidth: 4, borderWidth: 0 } },
+            // The root: no frame and no title bar; its total is in the header.
+            {
+              itemStyle: {
+                gapWidth: 4,
+                borderWidth: 0,
+                color: "transparent",
+                borderColor: "transparent",
+              },
+              upperLabel: { show: false },
+            },
             { itemStyle: { gapWidth: 2 } },
             {},
           ],

@@ -29,6 +29,37 @@ export function withAlpha(color: string, a: number): string {
   return c;
 }
 
+function parseRgb(color: string): [number, number, number] | undefined {
+  const c = color.trim();
+  let m = /^#([0-9a-f]{3})$/i.exec(c);
+  if (m && m[1]) {
+    const [r, g, b] = [...m[1]].map((h) => parseInt(h + h, 16));
+    return [r as number, g as number, b as number];
+  }
+  m = /^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(c);
+  if (m && m[1]) {
+    const n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(c);
+  if (m) return [Number(m[1]), Number(m[2]), Number(m[3])];
+  return undefined;
+}
+
+/**
+ * `color` blended into `background`: weight 1 is `color`, 0 is `background`. Opaque, so nested
+ * boxes do not stack tints (ECharts paints a parent's frame under its children). Unparseable
+ * colours come back unchanged.
+ */
+export function mix(color: string, background: string, weight: number): string {
+  const a = parseRgb(color);
+  const b = parseRgb(background);
+  if (!a || !b) return color;
+  const ch = (i: number): number =>
+    Math.round(a[i]! * weight + b[i]! * (1 - weight));
+  return `rgb(${ch(0)}, ${ch(1)}, ${ch(2)})`;
+}
+
 export interface ThresholdBand {
   /** 0 below the first step, i + 1 at or above step i. */
   index: number;

@@ -85,7 +85,8 @@ function finish(
     value: b.value,
     children,
   };
-  if (topN !== undefined && topN > 0 && children.length > topN) {
+  // Grouping a single box would only hide its name, so Other needs at least two members.
+  if (topN !== undefined && topN > 0 && children.length > topN + 1) {
     const rest = children.slice(topN);
     node.children = children.slice(0, topN);
     node.children.push({

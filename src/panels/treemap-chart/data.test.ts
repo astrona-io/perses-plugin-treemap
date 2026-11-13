@@ -125,6 +125,18 @@ describe("buildTree", () => {
     expect(tree.root.children.some((c) => c.other)).toBe(false);
   });
 
+  it("does not make an Other group of a single box", () => {
+    const tree = buildTree(
+      results([
+        series({ team: "a", namespace: "x" }, 3),
+        series({ team: "b", namespace: "x" }, 2),
+        series({ team: "c", namespace: "x" }, 1),
+      ]),
+      { calculation: "last", levels, topN: 2 },
+    );
+    expect(tree.root.children.map((c) => c.name)).toEqual(["a", "b", "c"]);
+  });
+
   it("builds 2,000 leaves quickly and adds them up", () => {
     const leaves = large(5, 4, 10, 10);
     expect(leaves).toHaveLength(2000);

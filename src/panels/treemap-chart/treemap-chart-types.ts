@@ -27,7 +27,10 @@ export interface TreemapChartOptions {
   colorBy?: ColorBy;
   /** Used when `colorBy` is `thresholds`. `percent` mode compares a box's share of the total. */
   thresholds?: ThresholdOptions;
-  /** Keep the largest N boxes under each parent, at every level; the rest are summed into "Other". Unset: no limit. */
+  /**
+   * Keep the largest N boxes under each parent, at every level; the rest are summed into "Other"
+   * (only when that is at least two boxes). Unset: no limit.
+   */
   topN?: number;
   /** Show the breadcrumb (path and way back up) above the chart. Default true. */
   showBreadcrumb?: boolean;
